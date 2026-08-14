@@ -3,8 +3,7 @@ layout: default
 ---
 
 <p style="margin:0 0 2.5rem; max-width:34rem;">
-Writeups of vulnerabilities I have found and reported. Each entry lists its
-identifier and whether a fix exists at the time of writing.
+Writeups of vulnerabilities I have found and reported.
 </p>
 
 <ul class="ledger">

@@ -23,7 +23,7 @@ Inline `code` looks like this, and a longer block:
 ```php
 $result = @unserialize($postResult);
 if ($result === false && serialize(false) !== $postResult) {
-    throw new KalturaClientException("failed to unserialize server result\n$postResult", ...);
+    throw new CompanyClientException("failed to unserialize server result\n$postResult", ...);
 }
 ```
 
