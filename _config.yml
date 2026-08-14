@@ -1,0 +1,21 @@
+title: AndDone
+tagline: Security research and vulnerability disclosure
+description: Vulnerability research, disclosure writeups and advisories.
+author: AndDone
+
+# A user site (repo named <username>.github.io) is served from the domain root,
+# so baseurl must stay empty. Setting it here is the usual cause of broken CSS.
+baseurl: ""
+url: "https://anddone-git.github.io"
+
+permalink: /:year/:title/
+
+# No remote theme: the layouts in _layouts/ carry the whole design, which means
+# nothing breaks when a theme gem changes upstream.
+plugins:
+  - jekyll-feed
+
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
