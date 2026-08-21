@@ -3,7 +3,7 @@ layout: default
 ---
 
 <p style="margin:0 0 2.5rem; max-width:34rem;">
-Writeups of vulnerabilities I have found and reported.
+Pentester at Cyber Cloud, occasionally hunting for bugs in the wild. Here I'll share writeups of vulnerabilities I've found and reported.
 </p>
 
 <ul class="ledger">
