@@ -35,7 +35,7 @@ As of August 2026 the deserialization sink is still present in current Kaltura S
 
 During enumeration of a Bug Bounty target's attack surface, i was going through a large list of subdomains, using an automated tool (`httpx`) to filter accessible and unique web applications, followed by manually visiting the applications with Burp Suite as my proxy. I noticed that the **Kaltura mwEmbed HTML5 video player** running on one subdomain was using outdated JavaScript libraries, which intrigued me enough to look deeper into the functionality of the application.
 
-After enumerating the endpoints and running Burp Suite extensions like Param Miner, I discovered an undocumented parameter, `ServiceUrl`, on the endpoint `/html5/html5lib/v2.103/mwEmbedLoader.php`. Supplying a value caused an error visible in the response:
+After finding several API endpoints and running Burp Suite extensions like Param Miner, I discovered an undocumented parameter, `ServiceUrl`, on the endpoint `/html5/html5lib/v2.103/mwEmbedLoader.php`. Supplying a value caused an error visible in the response:
 
 ```
 Error getting sources from server. Please try again.
@@ -57,8 +57,7 @@ The version string in the URL, `v2.103`, is the newest html5lib release Kaltura 
 
 So I went looking for the vulnerability in Kaltura's own source, rather than assuming it was specific to this deployment. I pulled the current Kaltura Server source (tag [West-23.5.0](https://github.com/kaltura/server/tree/West-23.5.0)) and found the code responsible in the file `deployment/uiconf/KalturaClientBase.php`, the function `doQueue()` builds its request URL by concatenating `serviceUrl` with no validation, and when the response fails to parse, it includes the raw fetched bytes into the error message.
 
-That made it a vendor problem rather than a customer problem, and an unpatched one. A search-engine  
-query for the library path (`inurl:/html5/html5lib/`) returned **630+ results**. 
+That made it a vendor problem rather than a customer problem, and an unpatched one. A search-engine query for the library path (`inurl:/html5/html5lib/`) returned **630+ results**. 
 ![alt](/assets/img/searchresults.png)
 That figure indicates exposure of the component rather than a count of confirmed-vulnerable hosts, but the order of magnitude is the point: this was not one forgotten server with an outdated web application.
 
@@ -114,7 +113,7 @@ The write escapes the cache directory, lands in a web-accessible directory as a 
 
 I did **not** test the RCE against the bug bounty target, or against anyone else's production system. Demonstrating the file read on the target was already sufficient to establish the vulnerability's existence and impact for the report.
 
-Instead I validated the full chain against the Docker container `kaltura/server:latest`, a default installation with no hardening changes. It is worth mentioning that the vendor newest published docker container is from januari 2019 with Kaltura Server version 14.12.0, on CentOS 6.
+Instead I validated the full chain against the Docker container `kaltura/server:latest`, a default installation with no hardening changes. It is worth mentioning that the vendor newest published docker container is from January 2019 with Kaltura Server version 14.12.0, on CentOS 6.
 
 I wrote a proof of concept (`exploit.py`) that starts a listener, triggers the chain, and verifies the dropped shell.
 
