@@ -33,7 +33,7 @@ As of August 2026 the deserialization sink is still present in current Kaltura S
 
 ### An old player on a forgotten subdomain
 
-During enumeration of a Bug Bounty target's attack surface, i was going through a large list of subdomains, using an automated tool (`httpx`) to filter accessible and unique web applications, followed by manually visiting the applications with Burp Suite as my proxy. I noticed that the **Kaltura mwEmbed HTML5 video player** running on one subdomain was using outdated JavaScript libraries, which intrigued me enough to look deeper into the functionality of the application.
+During enumeration of a Bug Bounty target's attack surface, I was going through a large list of subdomains, using an automated tool (`httpx`) to filter accessible and unique web applications, followed by manually visiting the applications with Burp Suite as my proxy. I noticed that the **Kaltura mwEmbed HTML5 video player** running on one subdomain was using outdated JavaScript libraries, which intrigued me enough to look deeper into the functionality of the application.
 
 After finding several API endpoints and running Burp Suite extensions like Param Miner, I discovered an undocumented parameter, `ServiceUrl`, on the endpoint `/html5/html5lib/v2.103/mwEmbedLoader.php`. Supplying a value caused an error visible in the response:
 
