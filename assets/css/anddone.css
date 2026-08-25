@@ -199,6 +199,7 @@ a:hover { color: var(--ink); }
 
 .ad-body img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); }
 .ad-body figure { display: flex; flex-direction: column; gap: 12px; }
+
 .ad-body figcaption, .ad-body p > img + em {
   display: block;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
@@ -273,9 +274,7 @@ a:hover { color: var(--ink); }
 /* ---------- narrow screens: rail collapses ---------- */
 
 @media (max-width: 900px) {
-  .ad-railcol { flex: 0 0 40px; }
-  .ad-rail { padding-left: 0; }
-  .ad-rail i:nth-child(n+4) { display: none; }
+  .ad-railcol { display: none; }
   .ad-post { padding: 40px 24px 80px 20px; font-size: 18px; }
   .ad-title { font-size: 36px; }
   .ad-dek { font-size: 19px; }
