@@ -19,3 +19,11 @@ exclude:
   - README.md
   - Gemfile
   - Gemfile.lock
+
+defaults:
+  - scope: { path: "", type: "posts" }
+    values: { layout: "post" }
+
+highlighter: rouge
+kramdown:
+  syntax_highlighter: rouge

@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ page.title }} · AndDone</title>
+<title>AndDone · Security research and disclosure</title>
 <link rel="icon" href="/favicon.svg">
-<link rel="apple-touch-icon" href="/apple-touch-icon-180.png">
-<meta property="og:title" content="{{ page.title }}">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:title" content="AndDone">
 <meta property="og:description" content="Security research and disclosure">
-<meta property="og:image" content="https://anddone-git.github.io/og-card-1200x630.png">
+<meta property="og:image" content="https://anddone-git.github.io/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,35 +33,21 @@
     </div>
   </div>
 
-  <article class="ad-post">
+  <main class="ad-post ad-home">
 
-    <header class="ad-head">
-      <a class="ad-brand" href="/">
-        <span class="ad-mark"><i></i><i></i><i class="gap"></i><b></b></span>
-        <span class="ad-name">AndDone</span>
-      </a>
-      <span class="ad-tag">Security research and disclosure</span>
+    <header class="ad-masthead">
+      <h1 class="ad-wordmark">AndDone</h1>
+      <p class="ad-strap">Security research and disclosure</p>
     </header>
 
-    <div class="ad-meta">
-      <span>{{ page.date | date: "%Y-%m-%d" }}</span>
-      {% if page.cve %}<span class="ad-accent">{{ page.cve }}</span>{% endif %}
-      {% if page.cvss %}<span>CVSS {{ page.cvss }}</span>{% endif %}
-    </div>
-
-    <h1 class="ad-title">{{ page.title }}</h1>
-    {% if page.dek %}<p class="ad-dek">{{ page.dek }}</p>{% endif %}
-
-    <div class="ad-body">
-      {{ content }}
-    </div>
+    {{ content }}
 
     <footer class="ad-foot">
       <span>AndDone</span>
       <a href="https://anddone-git.github.io">anddone-git.github.io</a>
     </footer>
 
-  </article>
+  </main>
 
 </div>
 

@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: home
 ---
 
 <p style="margin:0 0 2.5rem; max-width:34rem;">

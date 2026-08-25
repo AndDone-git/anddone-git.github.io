@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One Parameter, Two Bugs: From a Forgotten Video Player to Unauthenticated RCE · AndDone</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon-180.png">
+<meta property="og:title" content="One Parameter, Two Bugs: From a Forgotten Video Player to Unauthenticated RCE">
+<meta property="og:description" content="Security research and disclosure">
+<meta property="og:image" content="https://anddone-git.github.io/og-card-1200x630.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Spectral:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/anddone.css">
+</head>
+<body>
+
+<div class="ad-shell">
+
+  <div class="ad-railcol">
+    <div class="ad-rail" id="ad-rail">
+      <i style="--w:36px; --c:#132B21"></i>
+      <i style="--w:30px; --c:#1C3A2E"></i>
+      <i style="--w:26px; --c:#24493A"></i>
+      <i style="--w:22px; --c:#2F5D46"></i>
+      <i style="--w:18px; --c:#3C6C55"></i>
+      <i style="--w:14px; --c:#4E7D67"></i>
+      <i style="--w:10px; --c:#628F79"></i>
+      <i style="--w:7px;  --c:#7DA692"></i>
+      <i style="--w:5px;  --c:#9BBCAB"></i>
+    </div>
+  </div>
+
+  <article class="ad-post">
+
+    <header class="ad-head">
+      <a class="ad-brand" href="/">
+        <span class="ad-mark"><i></i><i></i><i class="gap"></i><b></b></span>
+        <span class="ad-name">AndDone</span>
+      </a>
+      <span class="ad-tag">Security research and disclosure</span>
+    </header>
+
+    <div class="ad-meta">
+      <span>2026-08-25</span>
+      <span class="ad-accent">CVE-2026-19912 CVE-2026-19913</span>
+      <span>CVSS 10.0</span>
+    </div>
+
+    <h1 class="ad-title">One Parameter, Two Bugs: From a Forgotten Video Player to Unauthenticated RCE</h1>
+    <p class="ad-dek">A bug bounty hunt that started with an outdated JavaScript library and ended with an unauthenticated remote code execution chain in software used by universities, broadcasters and enterprises worldwide, plus a vendor that never replied.
+</p>
+
+    <div class="ad-body">
+      <h2 class="ad-label" id="tldr">TL;DR</h2>
+
+<p>While hunting on a public bug bounty program I found a Kaltura mwEmbed video player deployment on one of the target’s subdomains. A single undocumented request parameter, <code class="language-plaintext highlighter-rouge">ServiceUrl</code>, turned out to control the URL that the server-side PHP client fetches <em>and then deserializes</em>.</p>
+
+<p>That one design flaw resulted in two distinct vulnerabilities:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th>Class</th>
+      <th>CVE</th>
+      <th>CVSS 3.1 (reporter)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Vuln 1</strong></td>
+      <td>Unauthenticated arbitrary file read.</td>
+      <td><a href="https://www.cve.org/CVERecord?id=CVE-2026-19913">CVE-2026-19913</a></td>
+      <td>9.1</td>
+    </tr>
+    <tr>
+      <td><strong>Vuln 2</strong></td>
+      <td>Unauthenticated RCE via PHP object injection + path traversal</td>
+      <td><a href="https://www.cve.org/CVERecord?id=CVE-2026-19912">CVE-2026-19912</a></td>
+      <td>10.0</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Both are fully unauthenticated, server-side, and need no user interaction. No account, no password, no Kaltura Session token, no cookie. Neither was known to the vendor.</p>
+
+<p>As of August 2026 the deserialization sink is still present in current Kaltura Server source code, no advisory or CVE exists. Despite outreach from two email addresses, LinkedIn, and through a CERT that escalated the case to CISA, <strong>Kaltura has not responded</strong>.</p>
+
+<hr />
+
+<h2 id="chapter-1-the-discovery-and-file-read-vulnerability">Chapter 1: The Discovery and File Read vulnerability</h2>
+
+<h3 id="an-old-player-on-a-forgotten-subdomain">An old player on a forgotten subdomain</h3>
+
+<p>During enumeration of a Bug Bounty target’s attack surface, i was going through a large list of subdomains, using an automated tool (<code class="language-plaintext highlighter-rouge">httpx</code>) to filter accessible and unique web applications, followed by manually visiting the applications with Burp Suite as my proxy. I noticed that the <strong>Kaltura mwEmbed HTML5 video player</strong> running on one subdomain was using outdated JavaScript libraries, which intrigued me enough to look deeper into the functionality of the application.</p>
+
+<p>After enumerating the endpoints and running Burp Suite extensions like Param Miner, I discovered an undocumented parameter, <code class="language-plaintext highlighter-rouge">ServiceUrl</code>, on the endpoint <code class="language-plaintext highlighter-rouge">/html5/html5lib/v2.103/mwEmbedLoader.php</code>. Supplying a value caused an error visible in the response:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Error getting sources from server. Please try again.
+failed to unserialize server result
+</code></pre></div></div>
+
+<p>Two enormous pieces of information in one string. “Server result” means the value I control is being used as a URL that the <em>server</em> then fetches. “Failed to unserialize” means the bytes coming back from that URL are being passed into PHP’s <code class="language-plaintext highlighter-rouge">unserialize()</code>, and that when it fails, the raw fetched bytes are reflected back to me.</p>
+
+<p>When I provided the value <code class="language-plaintext highlighter-rouge">file:///etc/passwd?</code>, with a question mark to close any trailing data, it returned the contents of <code class="language-plaintext highlighter-rouge">/etc/passwd</code>, confirming that this parameter is vulnerable to arbitrary file read.</p>
+
+<p><img src="/assets/img/LFI.png" alt="alt" />
+<em>Unauthenticated arbitrary file read, from a browser, with no session, no cookie, no Kaltura Session token, and no user interaction.</em></p>
+
+<p>I escalated it to something with real consequences by reading the Kaltura application configuration at <code class="language-plaintext highlighter-rouge">/opt/kaltura/app/configurations/local.ini</code>, which contains <strong>plaintext database connection strings, credentials including admin and console passwords, and internal host references</strong>.</p>
+
+<h3 id="single-bug-bounty-target-problem-or-vendor-problem">Single bug bounty target problem, or vendor problem?</h3>
+
+<p>The version string in the URL, <code class="language-plaintext highlighter-rouge">v2.103</code>, is the newest html5lib release Kaltura publishes. That ruled out the comfortable explanation, that I had simply found one bug bounty target running something ancient.</p>
+
+<p>So I went looking for the vulnerability in Kaltura’s own source, rather than assuming it was specific to this deployment. I pulled the current Kaltura Server source (tag <a href="https://github.com/kaltura/server/tree/West-23.5.0">West-23.5.0</a>) and found the code responsible in the file <code class="language-plaintext highlighter-rouge">deployment/uiconf/KalturaClientBase.php</code>, the function <code class="language-plaintext highlighter-rouge">doQueue()</code> builds its request URL by concatenating <code class="language-plaintext highlighter-rouge">serviceUrl</code> with no validation, and when the response fails to parse, it includes the raw fetched bytes into the error message.</p>
+
+<p>That made it a vendor problem rather than a customer problem, and an unpatched one. A search-engine<br />
+query for the library path (<code class="language-plaintext highlighter-rouge">inurl:/html5/html5lib/</code>) returned <strong>630+ results</strong>. 
+<img src="/assets/img/searchresults.png" alt="alt" />
+That figure indicates exposure of the component rather than a count of confirmed-vulnerable hosts, but the order of magnitude is the point: this was not one forgotten server with an outdated web application.</p>
+
+<p>The vulnerable loader is also exposed on Kaltura’s own shared, multi-tenant production CDN hosts, which serve player content for a large number of their customers. The vendor’s own infrastructure is affected, not only third-party deployments.</p>
+
+<p>I emailed Kaltura on 23 March 2026. No reply.</p>
+
+<p>Realising this affected organisations worldwide rather than a single bug bounty target pushed me to dig deeper into an even more impactful vulnerability class, insecure deserialization, which can lead to remote code execution.</p>
+
+<hr />
+
+<h2 id="chapter-2-from-file-read-to-remote-code-execution">Chapter 2: From File Read to Remote Code Execution</h2>
+
+<h3 id="following-the-sink">Following the sink</h3>
+
+<p>Kaltura Server and mwEmbed are open source, so I could stop guessing and start reading. This phase was manual code review supported by Claude. I used it to work out which functions receive the injected object, and from there to reason about which sinks the injected object could actually reach, and to find a way to abuse the caching mechanism to store a web shell under the web root. With Kaltura Server and mwEmbed running in a Docker container that Claude could reach, code review stopped being a one-way exercise. A theory about where the injected object ended up could be checked immediately against a live instance.</p>
+
+<p>The core of it, in <code class="language-plaintext highlighter-rouge">KalturaClientBase::doQueue()</code>:</p>
+
+<div class="language-php highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$url</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="n">config</span><span class="o">-&gt;</span><span class="n">serviceUrl</span> <span class="mf">.</span> <span class="s2">"/api_v3/index.php?service="</span><span class="p">;</span>
+<span class="c1">// ...</span>
+<span class="k">list</span><span class="p">(</span><span class="nv">$postResult</span><span class="p">,</span> <span class="nv">$error</span><span class="p">)</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="nf">doHttpRequest</span><span class="p">(</span><span class="nv">$url</span><span class="p">,</span> <span class="nv">$params</span><span class="p">,</span> <span class="nv">$files</span><span class="p">);</span>
+<span class="c1">// ...</span>
+<span class="nv">$result</span> <span class="o">=</span> <span class="o">@</span><span class="nb">unserialize</span><span class="p">(</span><span class="nv">$postResult</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$result</span> <span class="o">===</span> <span class="kc">false</span> <span class="o">&amp;&amp;</span> <span class="nb">serialize</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span> <span class="o">!==</span> <span class="nv">$postResult</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">throw</span> <span class="k">new</span> <span class="nc">KalturaClientException</span><span class="p">(</span>
+        <span class="s2">"failed to unserialize server result</span><span class="se">\n</span><span class="nv">$postResult</span><span class="s2">"</span><span class="p">,</span> <span class="mf">...</span>
+    <span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Three things go wrong here:</p>
+
+<ol>
+  <li><strong><code class="language-plaintext highlighter-rouge">serviceUrl</code> is attacker-controlled</strong>, so the attacker chooses the host and the scheme the server fetches from.</li>
+  <li><strong>The response is deserialized with no origin check</strong>, no signature, and no class allow-list. The client explicitly requests PHP’s serialize format instead of JSON, which can only produce data and cannot instantiate anything.</li>
+  <li><strong>The failure path reflects the fetched bytes back to the requester</strong>, which is what made the file read self-evident from the browser.</li>
+</ol>
+
+<p>So I can make a Kaltura server instantiate a PHP object of my choosing. The remaining question: <strong>what does the application then do with that object?</strong></p>
+
+<h3 id="the-write-primitive">The write primitive</h3>
+
+<p>Following the object downstream through mwEmbed:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">loadUiConfFromApi()</code> takes a property off the deserialized object and hands it to the file cache layer.</li>
+  <li><code class="language-plaintext highlighter-rouge">kInfraFileSystemCacheWrapper::getFilePath()</code>, in <code class="language-plaintext highlighter-rouge">infra/cache/</code>, builds the on-disk destination by concatenating the cache base directory with a path derived from the <strong><code class="language-plaintext highlighter-rouge">uiconf_id</code> request parameter</strong>, with no sanitisation.</li>
+</ul>
+
+<p>That is the whole chain. I control the <em>content</em> written to disk, via the deserialized object, and I control the <em>destination path</em>, via traversal sequences in <code class="language-plaintext highlighter-rouge">uiconf_id</code>. Content control plus path control, on a PHP server, under a webroot that executes PHP.</p>
+
+<p>The write escapes the cache directory, lands in a web-accessible directory as a <code class="language-plaintext highlighter-rouge">.php</code> file, and executes on request as the web server user.</p>
+
+<h3 id="exploit">Exploit</h3>
+
+<p>I did <strong>not</strong> test the RCE against the bug bounty target, or against anyone else’s production system. Demonstrating the file read on the target was already sufficient to establish the vulnerability’s existence and impact for the report.</p>
+
+<p>Instead I validated the full chain against the Docker container <code class="language-plaintext highlighter-rouge">kaltura/server:latest</code>, a default installation with no hardening changes. It is worth mentioning that the vendor newest published docker container is from januari 2019 with Kaltura Server version 14.12.0, on CentOS 6.</p>
+
+<p>I wrote a proof of concept (<code class="language-plaintext highlighter-rouge">exploit.py</code>) that starts a listener, triggers the chain, and verifies the dropped shell.</p>
+
+<p><img src="/assets/img/exploit-and-host-payload.png" alt="alt" />
+<img src="/assets/img/webshell-accessible-from-webroot.png" alt="alt" /></p>
+<h3 id="verifying-against-the-current-release">Verifying against the current release</h3>
+<p>To be exact about scope: the end-to-end web shell drop was demonstrated on the Kaltura Server docker image from 2019. What I verified on the current release (<a href="https://github.com/kaltura/server/tree/West-23.5.0"><code class="language-plaintext highlighter-rouge">West-23.5.0</code></a>) is that both halves of the chain are present, and that the deserialization half still executes as described.</p>
+
+<p><strong>The deserialization sink is unchanged.</strong> <code class="language-plaintext highlighter-rouge">deployment/uiconf/KalturaClientBase.php</code> is byte-identical to the 2019 copy: same unvalidated <code class="language-plaintext highlighter-rouge">serviceUrl</code> concatenation, same <code class="language-plaintext highlighter-rouge">unserialize()</code> of the fetched response, same fetched bytes pasted into the exception message.</p>
+
+<p>It also still works. I ran that exact file on PHP version 8.3.33 with libcurl version 8.14.1 and pointed <code class="language-plaintext highlighter-rouge">serviceUrl</code> at a local file. The library fetched it, failed to deserialize it, and handed back its contents inside the exception.</p>
+
+<p><strong>The write primitive is unchanged too.</strong> In <code class="language-plaintext highlighter-rouge">infra/cache/kInfraFileSystemCacheWrapper.php</code>, <code class="language-plaintext highlighter-rouge">getFilePath()</code> still concatenates <code class="language-plaintext highlighter-rouge">dirname($key)</code> onto the cache base folder with no <code class="language-plaintext highlighter-rouge">realpath()</code> containment, no rejection of traversal sequences, and no separator filtering.</p>
+
+<p>The file-drop step depends on the file-based cache backend, which is the Kaltura default. A memcache-only configuration may suppress the write and therefore that specific RCE path. However, that does not make the deployment safe. The underlying deserialization of attacker-controlled data and the unsanitised path construction are present regardless of cache backend, and the file read does not depend on the cache backend at all.</p>
+
+<p>So both halves are present in the current release, and the deserialization half demonstrably still executes. What I have not done is drive the complete chain end to end on a current installation. The vendor publishes no current container image, and their installation documentation targets only operating systems that have reached end of life.</p>
+
+<hr />
+
+<h2 id="disclosure-timeline">Disclosure timeline</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">23-03-2026</code></td>
+      <td>Initial report sent to vendor security contact (personal email)</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">13-04-2026</code></td>
+      <td>Re-sent from corporate email address, in case of spam filtering</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">23-05-2026</code></td>
+      <td>Outreach to vendor CISO via LinkedIn</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">02-07-2026</code></td>
+      <td>Report escalated through national CERT</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+
+<h2 id="if-you-run-kaltura-server">If you run Kaltura Server</h2>
+
+<p>No patch exists. Until one does:</p>
+
+<ul>
+  <li><strong>Block or remove <code class="language-plaintext highlighter-rouge">mwEmbedLoader.php</code></strong> at your WAF, reverse proxy or CDN. If you are not actively serving legacy mwEmbed players, this path has no reason to be reachable.</li>
+  <li><strong>Reject any <code class="language-plaintext highlighter-rouge">ServiceUrl</code> value that is not your own API host</strong>, and explicitly reject non-<code class="language-plaintext highlighter-rouge">http(s)</code> schemes.</li>
+  <li><strong>Reject <code class="language-plaintext highlighter-rouge">uiconf_id</code> values</strong> containing traversal sequences, absolute paths or directory separators.</li>
+  <li><strong>Deny PHP execution in cache directories.</strong> Good hygiene regardless, and it breaks the drop step.</li>
+  <li><strong>Restrict outbound network access</strong> from the application server. The RCE requires it to fetch from an attacker-controlled host.</li>
+  <li><strong>If you have been exposed, rotate everything in <code class="language-plaintext highlighter-rouge">local.ini</code></strong>: database credentials, admin and console passwords, partner secrets and API keys. Then check your logs for requests to <code class="language-plaintext highlighter-rouge">mwEmbedLoader.php</code> carrying a <code class="language-plaintext highlighter-rouge">ServiceUrl</code> parameter, and for unexpected <code class="language-plaintext highlighter-rouge">.php</code> files under your html5lib cache directories.</li>
+</ul>
+
+
+    </div>
+
+    <footer class="ad-foot">
+      <span>AndDone</span>
+      <a href="https://anddone-git.github.io">anddone-git.github.io</a>
+    </footer>
+
+  </article>
+
+</div>
+
+<script src="/assets/js/rail.js"></script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+/* AndDone — paper, ink, rain green. Serif prose, mono identifiers. */
+
+:root {
+  --paper:  #EDF0EC;
+  --ink:    #14181A;
+  --muted:  #626C6B;
+  --rule:   #D2D8D0;
+  --green:  #2F5D46;
+  --green-d:#1C3A2E;
+  --chip:   #E3E7E2;
+  --code-bg:#EFF1EF;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Spectral, Georgia, serif;
+  font-size: 19px;
+  line-height: 1.68;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--green); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--ink); }
+
+/* ---------- shell + rail ---------- */
+
+.ad-shell { max-width: 1180px; margin: 0 auto; display: flex; align-items: stretch; }
+
+.ad-railcol { flex: 0 0 208px; }
+
+.ad-rail {
+  position: sticky; top: 0; height: 100vh;
+  padding-left: 20px;
+  display: flex; align-items: flex-start;
+}
+.ad-rail i {
+  display: block;
+  width: var(--w);
+  background: var(--c);
+  height: 100vh;               /* replaced per-scroll by rail.js */
+}
+
+/* ---------- article ---------- */
+
+.ad-post {
+  flex: 1; min-width: 0; max-width: 760px;
+  padding: 56px 72px 120px 40px;
+}
+
+.ad-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; padding-bottom: 44px;
+}
+.ad-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.ad-mark {
+  width: 26px; height: 26px; border-radius: 5px; background: var(--green-d);
+  display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+}
+.ad-mark i { width: 2px; height: 2px; background: var(--paper); }
+.ad-mark i.gap { margin-right: 1px; }
+.ad-mark b { width: 6px; height: 6px; background: var(--paper); }
+.ad-name { font-weight: 500; font-size: 19px; letter-spacing: -0.01em; color: var(--ink); }
+.ad-tag {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+}
+
+.ad-meta {
+  display: flex; gap: 20px; margin-bottom: 34px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px; letter-spacing: 0.08em; color: var(--muted);
+}
+.ad-meta .ad-accent { color: var(--green); }
+
+.ad-title {
+  margin: 0 0 34px;
+  font-weight: 500; font-size: 52px; line-height: 1.1;
+  letter-spacing: -0.018em; text-wrap: pretty;
+}
+.ad-dek {
+  margin: 0 0 34px;
+  font-size: 21px; line-height: 1.55; font-style: italic; color: #3A4442;
+  text-wrap: pretty;
+}
+
+/* ---------- markdown body ---------- */
+
+/* vertical rhythm: spacing lives on the elements, so it applies at any nesting
+   depth and whether or not {{ content }} sits inside .ad-body */
+.ad-body :is(p, ul, ol, pre, table, figure, blockquote, hr, div.highlighter-rouge) {
+  margin: 0 0 34px;
+}
+.ad-body :is(h2, h3, h4) { margin: 56px 0 22px; }
+.ad-body > :first-child { margin-top: 0; }
+.ad-body > :last-child { margin-bottom: 0; }
+
+.ad-body hr { border: 0; height: 1px; background: var(--rule); }
+
+.ad-body h2 {
+  font-weight: 500; font-size: 34px; line-height: 1.2;
+  letter-spacing: -0.012em; text-wrap: pretty;
+}
+.ad-body h3 { font-weight: 600; font-size: 22px; line-height: 1.3; }
+
+/* a short all-caps label — write it as "## TL;DR" and it still reads as a heading;
+   add {: .ad-label } after the heading in markdown for the mono kicker treatment */
+.ad-body .ad-label {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-weight: 500; font-size: 13px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--green);
+}
+
+/* ---------- code ---------- */
+
+/* inline code — kramdown adds .highlighter-rouge here too, so match the element */
+.ad-body code,
+.ad-body code.highlighter-rouge {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.86em;
+  background: var(--chip);
+  color: var(--ink);
+  padding: 2px 5px;
+}
+
+/* fenced blocks only: div.highlighter-rouge, never the inline <code> */
+.ad-body pre,
+.ad-body div.highlighter-rouge {
+  background: #10201A;
+  border-left: 3px solid var(--green);
+  overflow-x: auto;
+}
+.ad-body pre {
+  padding: 22px 26px;
+  color: #DCE5DF;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 13.5px; line-height: 1.8;
+  tab-size: 4;
+}
+.ad-body div.highlighter-rouge > .highlight { background: none; }
+.ad-body div.highlighter-rouge pre { border-left: 0; margin: 0; }
+.ad-body pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+
+/* Rouge tokens — rain-green family, warm accent for strings, muted comments */
+.ad-body .highlight .c,  .ad-body .highlight .c1,
+.ad-body .highlight .cm, .ad-body .highlight .cs  { color: #6E8A7C; font-style: italic; }
+.ad-body .highlight .k,  .ad-body .highlight .kd,
+.ad-body .highlight .kn, .ad-body .highlight .kr,
+.ad-body .highlight .kt, .ad-body .highlight .kc,
+.ad-body .highlight .kp                            { color: #8FD3AE; font-weight: 600; }
+.ad-body .highlight .s,  .ad-body .highlight .s1,
+.ad-body .highlight .s2, .ad-body .highlight .sb,
+.ad-body .highlight .sd, .ad-body .highlight .se,
+.ad-body .highlight .sh, .ad-body .highlight .sx,
+.ad-body .highlight .dl                            { color: #D9C48A; }
+.ad-body .highlight .nv, .ad-body .highlight .vg,
+.ad-body .highlight .vi, .ad-body .highlight .vc   { color: #A8CFE0; }
+.ad-body .highlight .nf, .ad-body .highlight .fm   { color: #EFF1EF; font-weight: 600; }
+.ad-body .highlight .nc, .ad-body .highlight .nn,
+.ad-body .highlight .no                            { color: #BFE0CD; }
+.ad-body .highlight .m,  .ad-body .highlight .mi,
+.ad-body .highlight .mf, .ad-body .highlight .mh,
+.ad-body .highlight .mo, .ad-body .highlight .il   { color: #C9A9D1; }
+.ad-body .highlight .o,  .ad-body .highlight .ow,
+.ad-body .highlight .p                             { color: #9DB3A8; }
+.ad-body .highlight .nb, .ad-body .highlight .bp   { color: #8FD3AE; }
+.ad-body .highlight .cp                            { color: #6E8A7C; }
+.ad-body .highlight .err, .ad-body .highlight .gd  { color: #E58F7A; }
+.ad-body .highlight .nt                            { color: #8FD3AE; }
+.ad-body .highlight .na                            { color: #A8CFE0; }
+
+.ad-body ul, .ad-body ol { padding-left: 26px; display: flex; flex-direction: column; gap: 15px; }
+.ad-body li > code { white-space: nowrap; }
+
+.ad-body blockquote {
+  padding: 4px 0 4px 24px; border-left: 2px solid var(--green);
+  color: #3A4442; font-style: italic;
+}
+
+.ad-body table {
+  border-collapse: collapse; width: 100%; text-align: left;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px;
+}
+.ad-body th {
+  padding: 10px 14px; border-bottom: 1px solid var(--ink);
+  font-weight: 600; letter-spacing: 0.06em;
+}
+.ad-body td {
+  padding: 14px; border-bottom: 1px solid var(--rule); vertical-align: top;
+}
+.ad-body th:first-child, .ad-body td:first-child { padding-left: 0; }
+.ad-body th:last-child,  .ad-body td:last-child  { padding-right: 0; }
+.ad-body td strong { font-weight: 600; }
+
+.ad-body img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); }
+.ad-body figure { display: flex; flex-direction: column; gap: 12px; }
+.ad-body figcaption, .ad-body p > img + em {
+  display: block;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12.5px; line-height: 1.6; color: var(--muted); font-style: normal;
+}
+
+.ad-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  margin-top: 60px; padding-top: 44px; border-top: 1px solid var(--rule);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12.5px; letter-spacing: 0.06em; color: var(--muted);
+}
+
+/* ---------- index ---------- */
+
+.ad-home { padding-top: 96px; }
+
+.ad-masthead { margin-bottom: 72px; }
+.ad-wordmark {
+  margin: 0 0 14px;
+  font-weight: 500; font-size: 76px; line-height: 1;
+  letter-spacing: -0.025em;
+}
+.ad-strap {
+  margin: 0;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--green);
+}
+
+.ledger { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+
+.ledger .entry {
+  padding: 34px 0;
+  border-bottom: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.ledger .meta {
+  display: flex; flex-wrap: wrap; gap: 20px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px; letter-spacing: 0.08em; color: var(--muted);
+}
+.ledger .meta span { color: var(--green); }
+
+.ledger .status {
+  padding: 2px 8px;
+  font-size: 11px; letter-spacing: 0.12em;
+  border: 1px solid var(--rule); color: var(--muted);
+}
+.ledger .status[data-state="unpatched"],
+.ledger .status[data-state="no response"] { border-color: var(--green-d); color: var(--paper); background: var(--green-d); }
+.ledger .status[data-state="patched"],
+.ledger .status[data-state="fixed"] { border-color: var(--green); color: var(--green); background: none; }
+
+.ledger h2 {
+  margin: 0;
+  font-weight: 500; font-size: 32px; line-height: 1.18;
+  letter-spacing: -0.014em; text-wrap: pretty;
+}
+.ledger h2 a { color: var(--ink); text-decoration: none; }
+.ledger h2 a:hover { color: var(--green); text-decoration: underline; }
+
+.ledger .entry > p { margin: 0; max-width: 34rem; color: #3A4442; }
+
+.ledger .empty {
+  padding: 34px 0; border-bottom: 1px solid var(--rule);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 13px; color: var(--muted);
+}
+
+/* ---------- narrow screens: rail collapses ---------- */
+
+@media (max-width: 900px) {
+  .ad-railcol { flex: 0 0 40px; }
+  .ad-rail { padding-left: 0; }
+  .ad-rail i:nth-child(n+4) { display: none; }
+  .ad-post { padding: 40px 24px 80px 20px; font-size: 18px; }
+  .ad-title { font-size: 36px; }
+  .ad-dek { font-size: 19px; }
+  .ad-body h2 { font-size: 27px; }
+  .ad-body table { font-size: 12px; }
+  .ad-home { padding-top: 56px; }
+  .ad-wordmark { font-size: 48px; }
+  .ad-masthead { margin-bottom: 48px; }
+  .ledger h2 { font-size: 25px; }
+}
